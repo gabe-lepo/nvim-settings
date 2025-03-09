@@ -38,10 +38,6 @@ function SetColorScheme(mode)
 	local kanagawa = require("kanagawa")
   if mode == "light" then
 		vim.o.background = "light"
-		kanagawa.setup({theme={ui={
-			cursor_fg = "#000000",
-			cursor_bg = "#ff5500",
-		}}})
 		kanagawa.load("lotus")
   elseif mode == "dark" then
 		vim.o.background = "dark"
