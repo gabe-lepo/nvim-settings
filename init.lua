@@ -2,14 +2,18 @@
 vim.cmd [[
   call plug#begin('~/.config/nvim/plugged')
   Plug 'preservim/nerdtree'
-  Plug 'folke/tokyonight.nvim'
   Plug 'chrisbra/colorizer'
+  Plug 'rebelot/kanagawa.nvim'
   Plug 'nvim-lua/plenary.nvim'
   Plug 'nvim-telescope/telescope.nvim'
   Plug 'neovim/nvim-lspconfig'
   Plug 'williamboman/mason.nvim'
   Plug 'williamboman/mason-lspconfig.nvim'
-  Plug 'rebelot/kanagawa.nvim'
+	Plug 'echasnovski/mini.move'
+	Plug 'echasnovski/mini-git'
+	Plug 'echasnovski/mini.cursorword'
+	Plug 'echasnovski/mini.indentscope'
+	Plug 'echasnovski/mini.notify'
   call plug#end()
 ]]
 
@@ -75,15 +79,16 @@ vim.diagnostic.config({
   signs = false,
   virtual_text = true,
   underline = true,
-  update_in_insert = true,
+  update_in_insert = false,
 })
 
--- Autosetup installed LSP servers
+-- Setup LSP servers
 local lspconfig = require("lspconfig")
 require("mason-lspconfig").setup_handlers({
   function(server_name)
-    local opts = { on_attach = on_attach }
+		local opts = { on_attach = on_attach }
 
+		-- Lua LS
     if server_name == "lua_ls" then
       opts.settings = {
         Lua = {
@@ -103,11 +108,58 @@ require("mason-lspconfig").setup_handlers({
   end,
 })
 
+-- Setup mini stuff
+-- Notify
+require("mini.notify").setup({
+	content = {
+		format = nil,
+		sort = nil,
+	},
+	lsp_progress = {
+		enable = true,
+		level = 'INFO',
+		duration_last = 2000,
+	},
+	window = {
+		config = {},
+		max_width_share = 0.382,
+		winblend = 25,
+	},
+})
+-- Indent scope
+require("mini.indentscope").setup({
+	draw = {
+		delay = 10,
+	}
+})
+-- cursorword
+require("mini.cursorword").setup({
+	delay = 10,
+})
+-- git
+require("mini.git").setup()
+-- move
+require("mini.move").setup({
+	mappings = {
+    -- Visual mode
+    left = '<S-Left>',
+    right = '<S-Right>',
+    up = '<S-Up>',
+    down = '<S-Down>',
+    -- Normal mode (disabled)
+		line_left = '',
+		line_right = '',
+		line_up = '',
+		line_down = '',
+	},
+	options = {
+		reindent_linewise = true,
+	}
+})
+
 -- Custom commands
 vim.api.nvim_create_user_command("Source", "source ~/.config/nvim/init.lua", {})
 vim.api.nvim_create_user_command("Tree", "NERDTreeToggle", {})
-vim.api.nvim_create_user_command("Gstat", "Telescope git_status", {})
-vim.api.nvim_create_user_command("Glog", "Telescope git_commits", {})
 vim.api.nvim_create_user_command("Light", function() SetColorScheme("light") end, {})
 vim.api.nvim_create_user_command("Dark", function() SetColorScheme("dark") end, {})
 vim.api.nvim_create_user_command("Darker", function() SetColorScheme("darker") end, {})
@@ -127,8 +179,14 @@ map("n", "<Leader>f", ":Telescope live_grep<CR>", opts)
 map("n", "/", ":nohlsearch<CR>/", opts)
 
 
--- Other basics
-vim.opt.number = true
-vim.opt.tabstop = 2
-vim.opt.shiftwidth = 2
-vim.o.scrolloff = 999 -- Keep cursor centered unless at top or bottom
+-- Other
+vim.o.smartindent = true	-- Auto indent based on syntax
+vim.o.autoindent = true		-- Enable auto indentation
+vim.o.expandtab = true		-- Spaces instead of tab chars
+vim.o.tabstop = 2					-- Num spaces per tab
+vim.o.shiftwidth = 2			-- Num spaces for each step of auto indent
+vim.o.softtabstop = 2			-- Num spaces Tab generates in insert mode
+vim.o.smarttab = true			-- Insert tabs based on current indent level
+
+vim.o.number = true				-- Line numbers
+-- vim.o.scrolloff = 999	-- Keep cursor centered unless at top or bottom
