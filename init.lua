@@ -33,6 +33,7 @@ vim.api.nvim_create_autocmd("VimEnter", {
       vim.cmd "Telescope find_files"
     end
 
+    -- Script finder string!
 		SetColorScheme("darker")
   end,
 })
