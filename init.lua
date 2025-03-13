@@ -172,13 +172,27 @@ local telescope_builtin = require("telescope.builtin")
 local function on_attach(client, bufnr)
   -- LSP-focused keymaps
   local opts = { noremap = true, silent = false, buffer = bufnr }
+
   vim.keymap.set("n", "gd", function()
     telescope_builtin.lsp_definitions({
       jump_type = "tab",
       reuse_win = false,
     })
-  end, opts) -- Goto definitions in new buffer
-  vim.keymap.set("n", "gt", telescope_builtin.lsp_type_definitions, opts) -- Goto type definition
+  end, opts) -- Goto definitions in new tab
+
+  vim.keymap.set("n", "gt", function()
+    telescope_builtin.lsp_type_definitions({
+      jump_type = "tab",
+      reuse_win = false,
+    })
+  end, opts) -- Goto type definitions in new tab
+
+  vim.keymap.set("n", "<Leader>E", function()
+    telescope_builtin.diagnostics({
+      bufnr = 0,
+    })
+  end, {noremap = true, silent = false}) -- Open document diagnostics/errors
+
   vim.keymap.set("n", "gr", telescope_builtin.lsp_references, opts) -- Find references
   vim.keymap.set("n", "gs", telescope_builtin.lsp_document_symbols, opts) -- Symbols in curr buff
   vim.keymap.set('n', '<Leader>d', toggle_detail_view, opts)
