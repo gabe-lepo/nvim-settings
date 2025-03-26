@@ -15,10 +15,11 @@ vim.cmd [[
 	Plug 'echasnovski/mini.cursorword'
 	Plug 'echasnovski/mini.indentscope'
 	Plug 'echasnovski/mini.notify'
+	Plug 'karb94/neoscroll.nvim'
   call plug#end()
 ]]
 
--- Flip telescope search results
+-- Telescope setup (flip search results)
 require("telescope").setup({
   defaults = {
     sorting_strategy = "ascending",
@@ -49,7 +50,7 @@ vim.api.nvim_create_autocmd("VimEnter", {
     end
 
     -- Script finder string!
-		SetColorScheme("light")
+		SetColorScheme("dark")
   end,
 })
 
@@ -73,7 +74,7 @@ end
 -- Lock cursor function
 function ToggleScrollLock()
   if vim.o.scrolloff == 999 then
-    vim.o.scrolloff = 0
+    vim.o.scrolloff = 10
     print("Scroll lock disabled")
   else
     vim.o.scrolloff = 999
@@ -81,51 +82,38 @@ function ToggleScrollLock()
   end
 end
 
--- Custom "Detail" mode
-local function open_hover_window()
-  vim.lsp.buf.hover()
-  vim.wo.cursorline = true
-end
-local function close_hover_window()
-  vim.lsp.buf.clear_references()
-  vim.wo.cursorline = false
-end
-local detail_mode = false
-local function toggle_detail_view()
-  if detail_mode then
-    close_hover_window()
-    detail_mode = false
-  else
-    open_hover_window()
-    detail_mode = true
-  end
-end
-vim.api.nvim_create_autocmd("CursorMoved", {
-  pattern = "*",
-  callback = function()
-    if detail_mode then
-      open_hover_window()
-    end
-  end,
+-- neoscroll setup
+local neoscroll = require('neoscroll')
+neoscroll.setup({
+  mappings = {},
+  hide_cursor = false,
+  stop_eof = true,
+  respect_scrolloff = false,
+  cursor_scrolls_alone = true,
+  duration_multiplier = 1.0,
+  easing = 'linear',
+  pre_hook = nil,
+  post_hook = nil,
+  performance_mode = false,
+  ignored_events = {
+      'WinScrolled', 'CursorMoved'
+  },
 })
-vim.api.nvim_create_autocmd("InsertEnter", {
-  pattern = "*",
-  callback = function()
-    if detail_mode then
-      close_hover_window()
-      detail_mode = false
-    end
-  end,
-})
-vim.api.nvim_create_autocmd("ModeChanged", {
-  pattern = "*",
-  callback = function()
-    if detail_mode and vim.fn.mode() ~= "n" then
-      close_hover_window()
-      detail_mode = false
-    end
-  end,
-})
+
+-- Neoscroll custom maps
+local nscroll_maps = {
+  -- ["<S-Up>"] = function() neoscroll.ctrl_u({duration = 100}) end;
+  -- ["<S-Down>"] = function() neoscroll.ctrl_d({duration = 100}) end;
+  ["<S-Up>"] = function() neoscroll.scroll(-5, {duration=100}) end;
+  ["<S-Down>"] = function() neoscroll.scroll(5, {duration=100}) end;
+  ["zt"] = function() neoscroll.zt({half_win_duration = 100}) end;
+  ["zz"] = function() neoscroll.zz({half_win_duration = 100}) end;
+  ["zb"] = function() neoscroll.zb({half_win_duration = 100}) end;
+}
+local modes = { 'n' }
+for key, func in pairs(nscroll_maps) do
+  vim.keymap.set(modes, key, func)
+end
 
 -- Statusline mods
 vim.o.statusline = "%f %{&modified ? '🔥' : ''} %="
@@ -187,6 +175,7 @@ local function on_attach(client, bufnr)
     })
   end, opts) -- Goto type definitions in new tab
 
+  vim.keymap.set("n", "<Leader>e", vim.diagnostic.open_float, opts) -- Show errors for selected line
   vim.keymap.set("n", "<Leader>E", function()
     telescope_builtin.diagnostics({
       bufnr = 0,
@@ -194,12 +183,11 @@ local function on_attach(client, bufnr)
   end, {noremap = true, silent = false}) -- Open document diagnostics/errors
 
   vim.keymap.set("n", "gr", telescope_builtin.lsp_references, opts) -- Find references
-  vim.keymap.set("n", "gs", telescope_builtin.lsp_document_symbols, opts) -- Symbols in curr buff
-  vim.keymap.set('n', '<Leader>d', toggle_detail_view, opts)
+  vim.keymap.set("n", "<Leader>s", telescope_builtin.lsp_document_symbols, opts) -- Document symbols finder
   vim.keymap.set("n", "K", vim.lsp.buf.hover, opts) -- Symbol details hover
   vim.keymap.set("n", "<Leader>rn", vim.lsp.buf.rename, opts) -- Rename symbol
-  vim.keymap.set("n", "<Leader>e", vim.diagnostic.open_float, opts) -- Show errors for selected line
   vim.keymap.set("n", "<Leader>a", vim.lsp.buf.code_action, opts) -- Open code actions window
+  vim.keymap.set("n", "<Leader>b", telescope_builtin.buffers, opts) -- Open buffers picker
 end
 
 -- Diagnostic settings for all LSPs
@@ -232,7 +220,7 @@ require("mason-lspconfig").setup_handlers({
       }
     end
 
-		-- Zig
+		-- Zig (no auto formatting)
     if server_name == "zls" then
       vim.g.zig_fmt_autosave = 0
     end
@@ -311,9 +299,10 @@ map("n", "F", ":Telescope find_files<CR>", opts) -- Find files
 map("n", "f", ":Telescope current_buffer_fuzzy_find<CR>", opts) -- FZF current buffer
 map("n", "<Leader>f", ":Telescope live_grep<CR>", opts) -- Live grep
 map("n", "/", ":nohlsearch<CR>/", opts) -- Clear previous search highlights
-map("n", "<S-Up>", "10k", opts) -- Move cursor up 10 lines
-map("n", "<S-Down>", "10j", opts) -- Move cursor down 10 lines
-
+-- map("n", "<S-Up>", "5k", opts) -- Move cursor up 10 lines
+-- map("n", "<S-Down>", "5j", opts) -- Move cursor down 10 lines
+map("n", "<Leader>tr", ":tabmove +1<CR>", opts) -- Move current buffer tab right
+map("n", "<Leader>tl", ":tabmove -1<CR>", opts) -- Move current buffer tab left
 
 -- Other
 vim.o.smartindent = true	-- Auto indent based on syntax
@@ -325,4 +314,4 @@ vim.o.softtabstop = 2			-- Num spaces Tab generates in insert mode
 vim.o.smarttab = true			-- Insert tabs based on current indent level
 
 vim.o.number = true				-- Line numbers
-vim.o.scrolloff = 999     -- Keep cursor centered unless at top or bottom
+vim.o.scrolloff = 10      -- Screen only moves when cursor is +- 10 lines from screen edges
