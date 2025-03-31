@@ -16,10 +16,15 @@ vim.cmd [[
 	Plug 'echasnovski/mini.indentscope'
 	Plug 'echasnovski/mini.notify'
 	Plug 'karb94/neoscroll.nvim'
+	Plug 'github/copilot.vim', { 'tag': 'v1.34.0' } 
+	Plug 'CopilotC-Nvim/CopilotChat.nvim'
+  Plug 'nvim-treesitter/nvim-treesitter'
+  Plug 'folke/which-key.nvim'
+  Plug 'stevearc/aerial.nvim'
   call plug#end()
 ]]
 
--- Telescope setup (flip search results)
+-- Telescope setup
 require("telescope").setup({
   defaults = {
     sorting_strategy = "ascending",
@@ -33,12 +38,13 @@ require("telescope").setup({
   extensions = {
     ["ui-select"] = {
       require("telescope.themes").get_dropdown {}
-    }
+    },
   },
 })
 
--- Setup telescope ui select for lsp code actions
+-- Setup telescope extensions
 require("telescope").load_extension("ui-select")
+require("telescope").load_extension("aerial")
 
 -- VimEnter configs
 vim.api.nvim_create_autocmd("VimEnter", {
@@ -51,6 +57,8 @@ vim.api.nvim_create_autocmd("VimEnter", {
 
     -- Script finder string!
 		SetColorScheme("dark")
+
+    vim.cmd "Copilot disable"
   end,
 })
 
@@ -71,18 +79,7 @@ function SetColorScheme(mode)
   end
 end
 
--- Lock cursor function
-function ToggleScrollLock()
-  if vim.o.scrolloff == 999 then
-    vim.o.scrolloff = 10
-    print("Scroll lock disabled")
-  else
-    vim.o.scrolloff = 999
-    print("Scroll lock enabled")
-  end
-end
-
--- neoscroll setup
+-- Neoscroll setup
 local neoscroll = require('neoscroll')
 neoscroll.setup({
   mappings = {},
@@ -102,10 +99,8 @@ neoscroll.setup({
 
 -- Neoscroll custom maps
 local nscroll_maps = {
-  -- ["<S-Up>"] = function() neoscroll.ctrl_u({duration = 100}) end;
-  -- ["<S-Down>"] = function() neoscroll.ctrl_d({duration = 100}) end;
-  ["<S-Up>"] = function() neoscroll.scroll(-5, {duration=100}) end;
-  ["<S-Down>"] = function() neoscroll.scroll(5, {duration=100}) end;
+  ["<S-Up>"] = function() neoscroll.scroll(-10, {duration=100}) end;
+  ["<S-Down>"] = function() neoscroll.scroll(10, {duration=100}) end;
   ["zt"] = function() neoscroll.zt({half_win_duration = 100}) end;
   ["zz"] = function() neoscroll.zz({half_win_duration = 100}) end;
   ["zb"] = function() neoscroll.zb({half_win_duration = 100}) end;
@@ -116,7 +111,7 @@ for key, func in pairs(nscroll_maps) do
 end
 
 -- Statusline mods
-vim.o.statusline = "%f %{&modified ? '🔥' : ''} %="
+vim.o.statusline = "%f %{&modified ? '🔥' : ''} %= %p%%"
 
 -- Tabline modifications
 vim.o.showtabline = 2 -- Always show tabline
@@ -175,19 +170,17 @@ local function on_attach(client, bufnr)
     })
   end, opts) -- Goto type definitions in new tab
 
-  vim.keymap.set("n", "<Leader>e", vim.diagnostic.open_float, opts) -- Show errors for selected line
-  vim.keymap.set("n", "<Leader>E", function()
+  vim.keymap.set("n", "<leader>e", vim.diagnostic.open_float, opts) -- Show errors for selected line
+  vim.keymap.set("n", "<leader>E", function()
     telescope_builtin.diagnostics({
       bufnr = 0,
     })
   end, {noremap = true, silent = false}) -- Open document diagnostics/errors
 
   vim.keymap.set("n", "gr", telescope_builtin.lsp_references, opts) -- Find references
-  vim.keymap.set("n", "<Leader>s", telescope_builtin.lsp_document_symbols, opts) -- Document symbols finder
   vim.keymap.set("n", "K", vim.lsp.buf.hover, opts) -- Symbol details hover
-  vim.keymap.set("n", "<Leader>rn", vim.lsp.buf.rename, opts) -- Rename symbol
-  vim.keymap.set("n", "<Leader>a", vim.lsp.buf.code_action, opts) -- Open code actions window
-  vim.keymap.set("n", "<Leader>b", telescope_builtin.buffers, opts) -- Open buffers picker
+  vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts) -- Rename symbol
+  vim.keymap.set("n", "<leader>a", vim.lsp.buf.code_action, opts) -- Open code actions window
 end
 
 -- Diagnostic settings for all LSPs
@@ -229,53 +222,132 @@ require("mason-lspconfig").setup_handlers({
   end,
 })
 
+-- Treesitter setup
+require("nvim-treesitter.configs").setup({
+  ensure_installed = {
+    "c",
+    "cmake",
+    "javascript",
+    "json",
+    "lua",
+    "markdown",
+    "python",
+    "query",
+    "tsx",
+    "typescript",
+    "vim",
+    "vimdoc",
+    "zig"
+  },
+  sync_install = false,
+  auto_install = true,
+  ignore_install = {},
+  highlight = {
+    enable = true,
+    additional_vim_regex_highlighting = false,
+  },
+  indent = {
+    enable = true,
+  },
+  modules = {},
+})
+
 -- Setup mini plugins
 -- Notify
 require("mini.notify").setup({
-	content = {
-		format = nil,
-		sort = nil,
-	},
-	lsp_progress = {
-		enable = true,
-		level = 'INFO',
-		duration_last = 2000,
-	},
-	window = {
-		config = {},
-		max_width_share = 0.382,
-		winblend = 25,
-	},
+  content = {
+    format = nil,
+    sort = nil,
+  },
+  lsp_progress = {
+    enable = true,
+    level = 'INFO',
+    duration_last = 2000,
+  },
+  window = {
+    config = {},
+    max_width_share = 0.382,
+    winblend = 25,
+  },
 })
 -- Indent scope
 require("mini.indentscope").setup({
-	draw = {
-		delay = 10,
-	}
+  draw = {
+    delay = 10,
+  },
+  -- symbol = "|",
 })
 -- cursorword
 require("mini.cursorword").setup({
-	delay = 10,
+  delay = 10,
 })
 -- git
 require("mini.git").setup()
 -- move
 require("mini.move").setup({
-	mappings = {
+  mappings = {
     -- Visual mode
     left = '<S-Left>',
     right = '<S-Right>',
     up = '<S-Up>',
     down = '<S-Down>',
     -- Normal mode (disabled)
-		line_left = '',
-		line_right = '',
-		line_up = '',
-		line_down = '',
-	},
-	options = {
-		reindent_linewise = true,
-	}
+    line_left = '',
+    line_right = '',
+    line_up = '',
+    line_down = '',
+  },
+  options = {
+    reindent_linewise = true,
+  }
+})
+
+-- Copilot setup
+vim.g.copilot_workspace_folders = "~/Desktop/Work/repos"
+-- vim.keymap.set('i', '<C-a>', 'copilot#Accept("")', {
+--   expr = true,
+--   replace_keycodes = false
+-- })
+-- vim.g.copilot_no_tab_map = true
+
+-- CopilotChat setup
+require("CopilotChat").setup({
+   window = {
+     layout = "float",
+     relative = "editor",
+     width = 0.75,
+     height = 0.75,
+   },
+  show_help = false,
+  clear_chat_on_newprompt = false,
+  mappings = {
+    complete = { insert = '<Tab>' },
+    reset = { insert = '<C-l>', normal = '<C-l>' },
+  },
+  picker = "telescope",
+  suggestion = {
+    auto_trigger = false,
+    keymap = {
+      accept = "<C-Space>", -- Keybind to manually trigger suggestions
+    },
+  },
+
+  -- Custom prompts
+  -- prompts = {
+  --   Search = {
+  --     prompt = "Test",
+  --   },
+  -- },
+})
+
+-- Aerial setup (symbol tree viewer)
+require("aerial").setup({
+  on_attach = function(bufnr)
+    vim.keymap.set("n", "{", "<cmd>AerialPrev<CR>" , { buffer = bufnr })
+    vim.keymap.set("n", "}", "<cmd>AerialNext<CR>" , { buffer = bufnr })
+  end,
+  post_jump_cmd = "normal! zz",
+  vim.keymap.set("n", "<leader>s", "<cmd>Telescope aerial<CR>")
 })
 
 -- Custom commands
@@ -284,25 +356,30 @@ vim.api.nvim_create_user_command("Tree", "NERDTreeToggle", {})
 vim.api.nvim_create_user_command("Light", function() SetColorScheme("light") end, {})
 vim.api.nvim_create_user_command("Dark", function() SetColorScheme("dark") end, {})
 vim.api.nvim_create_user_command("Darker", function() SetColorScheme("darker") end, {})
-vim.api.nvim_create_user_command("Lock", function() ToggleScrollLock() end, {})
+vim.api.nvim_create_user_command("P", "CopilotChat", { range = true })
+vim.api.nvim_create_user_command("PP", "CopilotChatPrompts", { range = true })
+vim.api.nvim_create_user_command("W", "w", {})
+vim.api.nvim_create_user_command("All", "normal! ggVG", {})
 
 -- General keymaps
 local map = vim.api.nvim_set_keymap
 local opts = { noremap = true, silent = false }
 
-map("v", "<Leader>y", '"+y', opts) -- Yank visual selections to clipboard
-map("n", "<Leader>y", '"+yy', opts) -- Yank line to clipboard in normal mode
+map("v", "<leader>y", '"+y', opts) -- Yank visual selections to clipboard
+map("n", "<leader>y", '"+yy', opts) -- Yank line to clipboard in normal mode
 map("n", "<Tab>", ":tabnext<CR>", opts) -- Change tab
 map("n", "<S-Tab>", ":tabprevious<CR>", opts) -- Change tab
 map("n", "<S-w>", ":q<CR>", opts) -- Easy quit
 map("n", "F", ":Telescope find_files<CR>", opts) -- Find files
 map("n", "f", ":Telescope current_buffer_fuzzy_find<CR>", opts) -- FZF current buffer
-map("n", "<Leader>f", ":Telescope live_grep<CR>", opts) -- Live grep
+map("n", "<leader>f", ":Telescope live_grep<CR>", opts) -- Live grep
+map("n", "<leader>F", ":Telescope grep_string<CR>", opts) -- Grep string under cursor
 map("n", "/", ":nohlsearch<CR>/", opts) -- Clear previous search highlights
 -- map("n", "<S-Up>", "5k", opts) -- Move cursor up 10 lines
 -- map("n", "<S-Down>", "5j", opts) -- Move cursor down 10 lines
-map("n", "<Leader>tr", ":tabmove +1<CR>", opts) -- Move current buffer tab right
-map("n", "<Leader>tl", ":tabmove -1<CR>", opts) -- Move current buffer tab left
+map("n", "<leader>tr", ":tabmove +1<CR>", opts) -- Move current buffer tab right
+map("n", "<leader>tl", ":tabmove -1<CR>", opts) -- Move current buffer tab left
+vim.keymap.set("n", "<leader>b", telescope_builtin.buffers, opts) -- Open buffers picker
 
 -- Other
 vim.o.smartindent = true	-- Auto indent based on syntax
@@ -314,4 +391,11 @@ vim.o.softtabstop = 2			-- Num spaces Tab generates in insert mode
 vim.o.smarttab = true			-- Insert tabs based on current indent level
 
 vim.o.number = true				-- Line numbers
+vim.o.relativenumber = false -- Relative line numbers
 vim.o.scrolloff = 10      -- Screen only moves when cursor is +- 10 lines from screen edges
+vim.o.completeopt = "noselect,popup" -- Completion options
+
+-- Treesitter folding
+vim.o.foldmethod = "expr"
+vim.o.foldexpr = "nvim_treesitter#foldexpr()"
+vim.o.foldenable = false
